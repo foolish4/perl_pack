@@ -12,6 +12,7 @@ my $height=600;
 my $fps=60.0;
 my $delta_time_sec=1.0/60.0;
 
+#handle
 sub mod_x{
 	my ($x)=@_;
 	return ($x/$width)*2.0-1.0;
@@ -89,9 +90,51 @@ sub fill_rect{
 	fill_rect_point($x,$y,$x+$w,$y+$h);
 }
 
-my @keyboard;
+#state
+sub v2{
+	my ($x,$y)=@_;
+
+	return{
+		x=>$x,
+		y=>$y
+	};
+}
+
+my $speed=500;
+my $radius=69;
+my $pos=v2($radius+10,$radius+10);
+my $bullet_radius=23;
+my $max_bullet=50;
+my $bullet_speed=400;
+my $e_bullets; #expected bullets
+for(my $i=0;$i<$max_bullet;$i++){
+	$e_bullets->[$i]=v2(-50,-50);
+}
+my $bullets; #bullets
+for(my $i=0;$i<$max_bullet;$i++){
+	$bullets->[$i]=v2(-50,-50);
+}
+my $bullets_dir; #dir x,y for bullets
+for(my $i=0;$i<$max_bullet;$i++){
+	$bullets_dir->[$i]=v2(0,0);
+}
+my $bullets_diff; #bullets and e_bullets difference
+for(my $i=0;$i<$max_bullet;$i++){
+	$bullets_diff->[$i]=v2(0,0);
+}
+my $bullets_dist; #bullets and e_bullets distances
+for(my $i=0;$i<$max_bullet;$i++){
+	$bullets_dist->[$i]=0;
+}
+
+my $enemy=v2(10,10);
+my $enemy_dir=v2(1,1);
+my $enemy_size=30;
+my $enemy_speed=100;
+
+my $keyboard;
 for(my $i=0;$i<GLFW_KEY_LAST+1;$i++){
-	$keyboard[$i]=0;
+	$keyboard->[$i]=0;
 }
 sub key_callback{
 	my ($window,$key,$scancode,$action,$mods)=@_;
@@ -102,10 +145,10 @@ sub key_callback{
 			exit(0);
 		}
 
-		$keyboard[$key]=1;
+		$keyboard->[$key]=1;
 	}
 	if($action==GLFW_RELEASE){
-		$keyboard[$key]=0;
+		$keyboard->[$key]=0;
 	}
 }
 
@@ -113,6 +156,7 @@ sub key_callback{
 my $lmx=-50;
 my $lmy=-50;
 my $lmc=0;
+my $click_fired;
 sub mouse_callback{
 	my ($window,$xpos,$ypos)=@_;
 	#print("x=${xpos},y=${ypos}\n");
@@ -124,31 +168,12 @@ sub mouse_button_callback{
 		if($button==GLFW_MOUSE_BUTTON_LEFT){
 			my ($xpos,$ypos)=glfwGetCursorPos($window);
 			#print("press:x=${xpos},y=${ypos}\n");
+			#$lmc++;
 			$lmx=$xpos;
 			$lmy=$ypos;
-			$lmc++;
+			$click_fired=1;
 		}
 	}
-}
-
-sub v2{
-	my ($x,$y)=@_;
-
-	return{
-		x=>$x,
-		y=>$y
-	};
-}
-
-#state
-my $speed=500;
-my $radius=69;
-my $pos=v2($radius+10,$radius+10);
-my $bullet_radius=23;
-my $max_bullet=50;
-my @bullets;
-for(my $i=0;$i<$max_bullet;$i++){
-	$bullets[$i]=v2(-50,-50);
 }
 
 sub init{
@@ -159,34 +184,73 @@ sub init{
 sub update{
 	my ($dt)=@_;
 
-	if($keyboard[GLFW_KEY_A]){
+	if($keyboard->[GLFW_KEY_A]){
 		$pos->{x}-=$speed*$dt;
 	}
-	if($keyboard[GLFW_KEY_D]){
+	if($keyboard->[GLFW_KEY_D]){
 		$pos->{x}+=$speed*$dt;
 	}
-	if($keyboard[GLFW_KEY_W]){
+	if($keyboard->[GLFW_KEY_W]){
 		$pos->{y}-=$speed*$dt;
 	}
-	if($keyboard[GLFW_KEY_S]){
+	if($keyboard->[GLFW_KEY_S]){
 		$pos->{y}+=$speed*$dt;
 	}
 
-	$bullets[$lmc]->{x}=$lmx;
-	$bullets[$lmc]->{y}=$lmy;
+	if($click_fired && $lmc<$max_bullet){
+		$e_bullets->[$lmc]->{x}=$lmx;
+		$e_bullets->[$lmc]->{y}=$lmy;
+
+		$bullets->[$lmc]->{x}=$pos->{x};
+		$bullets->[$lmc]->{y}=$pos->{y};
+
+		$bullets_diff->[$lmc]->{x}=$e_bullets->[$lmc]->{x}-$bullets->[$lmc]->{x};
+		$bullets_diff->[$lmc]->{y}=$e_bullets->[$lmc]->{y}-$bullets->[$lmc]->{y};
+
+		$bullets_dist->[$lmc]=sqrt(($bullets_diff->[$lmc]->{x}**2)+($bullets_diff->[$lmc]->{y}**2));
+
+		if($bullets_dist->[$lmc]>0){
+			$bullets_dir->[$lmc]->{x}=$bullets_diff->[$lmc]->{x}/$bullets_dist->[$lmc];
+			$bullets_dir->[$lmc]->{y}=$bullets_diff->[$lmc]->{y}/$bullets_dist->[$lmc];
+		}
+	}
+
+	#increment after shooting
+	$lmc++;
+	if($lmc>=$max_bullet){
+		$lmc=0;
+	}
+
+	$click_fired=0;
+
+	for(my $i=0;$i<$max_bullet;$i++){
+		$bullets->[$i]->{x}+=$bullets_dir->[$i]->{x}*$bullet_speed*$dt;
+		$bullets->[$i]->{y}+=$bullets_dir->[$i]->{y}*$bullet_speed*$dt;
+	}
+
+	$enemy->{x}+=$enemy_dir->{x}*$enemy_speed*$dt;
+	$enemy->{y}+=$enemy_dir->{y}*$enemy_speed*$dt;
 }
 
 sub render{
-	glColor3f(1.0,0.0,0.0);
-	fill_circle($pos->{x},$pos->{y},$radius,$radius);
-
 	#glColor3f(0.0,1.0,0.0);
 	#fill_circle($lmx,$lmy,$bullet_radius);
 
-	glColor3f(0.0,1.0,0.0);
+	#glColor3f(0.0,1.0,0.0);
+	#for(my $i=0;$i<$max_bullet;$i++){
+	#	fill_circle($e_bullets->[$i]->{x},$e_bullets->[$i]->{y},$bullet_radius);
+	#}
+
+	glColor3f(1.0,1.0,1.0);
 	for(my $i=0;$i<$max_bullet;$i++){
-		fill_circle($bullets[$i]->{x},$bullets[$i]->{y},$bullet_radius);
+		fill_circle($bullets->[$i]->{x},$bullets->[$i]->{y},$bullet_radius);
 	}
+
+	glColor3f(0.0,1.0,1.0);
+	fill_rect($enemy->{x},$enemy->{y},$enemy_size,$enemy_size);
+
+	glColor3f(1.0,0.0,0.0);
+	fill_circle($pos->{x},$pos->{y},$radius,$radius);
 }
 
 sub main{
