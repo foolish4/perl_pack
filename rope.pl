@@ -13,6 +13,7 @@ my $PI=3.14159;
 my $WINDOW_WIDTH=800;
 my $WINDOW_HEIGHT=600;
 my $CIRCLE_RESOLUTION=30;
+my $KNOT_RADIUS=30;
 my $FPS=60.0;
 my $DELAY=1000.0/$FPS;
 my $DELTA_TIME_SEC=1.0/$FPS;
@@ -74,6 +75,10 @@ sub immediate_circle{
 	}
 }
 
+#state
+my $head=Vector2->new($WINDOW_WIDTH/2,$WINDOW_HEIGHT/2);
+my $drag=0; #0=false
+my $prev_left_mouse_button=GLFW_RELEASE; #release=0,press=1
 sub update{
 	my ($window,$dt)=@_;
 
@@ -81,35 +86,35 @@ sub update{
 		print("goodbye!\n");
 		exit(0);
 	}
+
+	my $current_left_button=glfwGetMouseButton($window,GLFW_MOUSE_BUTTON_LEFT);
+	if($current_left_button==GLFW_PRESS && $prev_left_mouse_button==GLFW_RELEASE){
+		my ($x,$y)=glfwGetCursorPos($window);
+		if(length(Vector2->new($x-$head->{x},$y-$head->{y}))<$KNOT_RADIUS){
+			$drag=1;
+		}
+	}
+	elsif($current_left_button==GLFW_RELEASE && $prev_left_mouse_button==GLFW_PRESS){
+		$drag=0;
+	}
+	$prev_left_mouse_button=$current_left_button;
 }
 sub render{
 	my ($window)=@_;
-	
-	my $pad=100;
-	
-	glColor3f(1.0,0.0,0.0);
-	my $p0=Vector2->new($pad,$pad);
-	my $p1=Vector2->new($WINDOW_WIDTH-$pad,$WINDOW_HEIGHT-$pad);
-	immediate_thicc_line($p0,$p1,20);
-	immediate_circle($p0,30);
-	immediate_circle($p1,30);
-	
-	glColor3f(0.0,1.0,0.0);
-	my $p2=Vector2->new($WINDOW_WIDTH-$pad,$pad);
-	my $p3=Vector2->new($pad,$WINDOW_HEIGHT-$pad);
-	immediate_thicc_line($p2,$p3,20);
-	immediate_circle($p2,30);
-	immediate_circle($p3,30);
 
-	my ($x,$y)=glfwGetCursorPos($window);
-	immediate_circle(Vector2->new($x,$WINDOW_HEIGHT-$y),30);
+	if($drag){
+		my ($x,$y)=glfwGetCursorPos($window);
+		$head=Vector2->new($x,$WINDOW_HEIGHT-$y);
+	}
+	glColor3f(1.0,0.0,0.0);
+	immediate_circle($head,$KNOT_RADIUS);
 }
 sub main{
 	glfwInit();
 	my $window=glfwCreateWindow($WINDOW_WIDTH,$WINDOW_HEIGHT,"hello",NULL,NULL);
 
 	glfwMakeContextCurrent($window);
-	glClearColor(0.0,0.0,0.0,1.0);
+	glClearColor(0.1,0.1,0.1,1.0);
 	glfwSwapInterval(1);
 	
 	while(!glfwWindowShouldClose($window)){
@@ -196,4 +201,8 @@ sub new{
 	};
 	bless($self,$class);
 	return $self;
+}
+sub length{
+	my ($self)=@_;
+	return ($self->{x}**2)+($self->{y}**2);
 }
