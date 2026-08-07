@@ -15,19 +15,25 @@ my $FPS=60.0;
 my $DELAY=1000.0/$FPS;
 my $DELTA_TIME_SEC=1.0/$FPS;
 
-sub mod_x{
+#by default, every x,y,w,h is SWING-FRIENDLY!
+
+sub to_simp_y{
+	my ($y)=@_;
+	return $WINDOW_HEIGHT-$y;
+}
+sub to_ogl_x{
 	my ($x)=@_;
 	return ($x/$WINDOW_WIDTH)*2.0-1.0;
 }
-sub mod_y{
+sub to_ogl_y{
 	my ($y)=@_;
 	return (($y/$WINDOW_HEIGHT)*2.0-1.0)*(-1);
 }
-sub mod_w{
+sub to_ogl_w{
 	my ($w)=@_;
 	return ($w/$WINDOW_WIDTH)*2.0;
 }
-sub mod_h{
+sub to_ogl_h{
 	my ($h)=@_;
 	return ($h/$WINDOW_HEIGHT)*2.0;
 }
@@ -48,16 +54,19 @@ sub simp_immediate_triangle{
 	my $by=$v2b->{y};
 	my $cy=$v2c->{y};
 
-	$ay=$WINDOW_HEIGHT-$ay;
-	$by=$WINDOW_HEIGHT-$by;
-	$cy=$WINDOW_HEIGHT-$cy;
+	$ay=to_simp_y($ay);
+	$by=to_simp_y($by);
+	$cy=to_simp_y($cy);
 
-	$ax=mod_x($ax);
-	$bx=mod_x($bx);
-	$cx=mod_x($cx);
-	$ay=mod_y($ay);
-	$by=mod_y($by);
-	$cy=mod_y($cy);
+	#normally in java swing, we can immediately draw it after to_simp_
+	#but this is opengl... we need to convert one more to_ogl...
+
+	$ax=to_ogl_x($ax);
+	$bx=to_ogl_x($bx);
+	$cx=to_ogl_x($cx);
+	$ay=to_ogl_y($ay);
+	$by=to_ogl_y($by);
+	$cy=to_ogl_y($cy);
 
 	glBegin(GL_TRIANGLES);
 	{
