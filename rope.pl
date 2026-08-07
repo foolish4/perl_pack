@@ -76,8 +76,15 @@ sub immediate_circle{
 
 sub update{
 	my ($window,$dt)=@_;
+
+	if(glfwGetKey($window,GLFW_KEY_ESCAPE) || glfwGetKey($window,GLFW_KEY_Q)){
+		print("goodbye!\n");
+		exit(0);
+	}
 }
 sub render{
+	my ($window)=@_;
+	
 	my $pad=100;
 	
 	glColor3f(1.0,0.0,0.0);
@@ -93,6 +100,9 @@ sub render{
 	immediate_thicc_line($p2,$p3,20);
 	immediate_circle($p2,30);
 	immediate_circle($p3,30);
+
+	my ($x,$y)=glfwGetCursorPos($window);
+	immediate_circle(Vector2->new($x,$WINDOW_HEIGHT-$y),30);
 }
 sub main{
 	glfwInit();
@@ -106,7 +116,7 @@ sub main{
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		update($window,$DELTA_TIME_SEC);
-		render();
+		render($window);
 
 		glfwSwapBuffers($window);
 		glfwPollEvents();
