@@ -10,10 +10,12 @@ use Time::HiRes qw(usleep);
 
 #configuration
 my $PI=3.14159;
-my $WINDOW_WIDTH=800;
-my $WINDOW_HEIGHT=600;
+my $WINDOW_FACTOR=75;
+my $WINDOW_WIDTH=16*$WINDOW_FACTOR;
+my $WINDOW_HEIGHT=9*$WINDOW_FACTOR;
 my $CIRCLE_RESOLUTION=30;
 my $KNOT_RADIUS=30;
+my $EPSILON=0.000001;
 my $FPS=60.0;
 my $DELAY=1000.0/$FPS;
 my $DELTA_TIME_SEC=1.0/$FPS;
@@ -27,8 +29,7 @@ sub immediate_thicc_line{
 
 	my $v2=Vector2->new(-$v1->{y},$v1->{x});
 	my $v2l=sqrt($v2->{x}**2+$v2->{y}**2);
-	my $epsilon=0.000006;
-	if($v2l<$epsilon){
+	if($v2l<=$EPSILON){
 		return;
 	}
 	$v2->{x}/=$v2l;
@@ -71,12 +72,48 @@ sub immediate_circle{
 		$p2->{y}*=$radius;
 		$p2->{x}+=$center->{x};
 		$p2->{y}+=$center->{y};
+
 		simp_immediate_triangle($p0,$p1,$p2);
 	}
+}
+sub mouse_position{
+	my ($window)=@_;
+	my ($x,$y)=glfwGetCursorPos($window);
+	return Vector2->new($x,$WINDOW_HEIGHT-$y);
+}
+sub compute_tail_velocity{
+	my ($head,$tail)=@_;
+
+	my $tail_velocity=Vector2->new(0,0);
+
+	my $TARGET_DISTANCE=100;
+	my $ELASTICITY=20; #STOP AT HERE: 1:42:51
+	
+	my $len=v2length(Vector2->new($tail->{x}-$head->{x},$tail->{y}-$head->{y}));
+	my $target=Vector2->new(0,0);
+	my $dir=Vector2->new(0,0);
+
+	if($len>$EPSILON){
+		$dir->{x}=($tail->{x}-$head->{x})/$len;
+		$dir->{y}=($tail->{y}-$head->{y})/$len;
+	}
+	else{
+		$dir->{x}=1;
+		$dir->{y}=0;
+	}
+	$target->{x}=$head->{x}+($dir->{x})*$TARGET_DISTANCE;
+	$target->{y}=$head->{y}+($dir->{y})*$TARGET_DISTANCE;
+
+	$tail_velocity->{x}=($target->{x}-$tail->{x})*$ELASTICITY;
+	$tail_velocity->{y}=($target->{y}-$tail->{y})*$ELASTICITY;
+
+	return $tail_velocity;
 }
 
 #state
 my $head=Vector2->new($WINDOW_WIDTH/2,$WINDOW_HEIGHT/2);
+my $tail=Vector2->new($WINDOW_WIDTH/3,$WINDOW_HEIGHT/3);
+my $tail_velocity=Vector2->new(0,0);
 my $drag=0; #0=false
 my $prev_left_mouse_button=GLFW_RELEASE; #release=0,press=1
 sub update{
@@ -89,25 +126,30 @@ sub update{
 
 	my $current_left_button=glfwGetMouseButton($window,GLFW_MOUSE_BUTTON_LEFT);
 	if($current_left_button==GLFW_PRESS && $prev_left_mouse_button==GLFW_RELEASE){
-		my ($x,$y)=glfwGetCursorPos($window);
-		if(length(Vector2->new($x-$head->{x},$y-$head->{y}))<$KNOT_RADIUS){
-			$drag=1;
-		}
+		my $pass=mouse_position($window);
+		$drag=v2length(Vector2->new($pass->{x}-$head->{x},$pass->{y}-$head->{y}))<=$KNOT_RADIUS;
 	}
 	elsif($current_left_button==GLFW_RELEASE && $prev_left_mouse_button==GLFW_PRESS){
 		$drag=0;
 	}
 	$prev_left_mouse_button=$current_left_button;
-}
-sub render{
-	my ($window)=@_;
 
 	if($drag){
-		my ($x,$y)=glfwGetCursorPos($window);
-		$head=Vector2->new($x,$WINDOW_HEIGHT-$y);
+		$head=mouse_position($window);
 	}
+
+	$tail_velocity=compute_tail_velocity($head,$tail);
+
+	$tail->{x}+=$tail_velocity->{x}*$dt;
+	$tail->{y}+=$tail_velocity->{y}*$dt;
+}
+sub render{
+	glColor3f(0.5,0.5,0.5);
+	immediate_thicc_line($head,$tail,30);
 	glColor3f(1.0,0.0,0.0);
 	immediate_circle($head,$KNOT_RADIUS);
+	glColor3f(0.0,1.0,0.0);
+	immediate_circle($tail,$KNOT_RADIUS);
 }
 sub main{
 	glfwInit();
@@ -121,7 +163,7 @@ sub main{
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		update($window,$DELTA_TIME_SEC);
-		render($window);
+		render();
 
 		glfwSwapBuffers($window);
 		glfwPollEvents();
@@ -191,6 +233,10 @@ sub simp_immediate_quad{
 	simp_immediate_triangle($p0,$p1,$p2);
 	simp_immediate_triangle($p0,$p2,$p3);
 }
+sub v2length{
+	my ($self)=@_;
+	return sqrt(($self->{x}**2)+($self->{y}**2));
+}
 
 package Vector2;
 sub new{
@@ -201,8 +247,4 @@ sub new{
 	};
 	bless($self,$class);
 	return $self;
-}
-sub length{
-	my ($self)=@_;
-	return ($self->{x}**2)+($self->{y}**2);
 }
