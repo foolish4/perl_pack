@@ -9,21 +9,90 @@ use OpenGL::GLFW qw(:all);
 use Time::HiRes qw(usleep);
 
 #configuration
+my $PI=3.14159;
 my $WINDOW_WIDTH=800;
 my $WINDOW_HEIGHT=600;
+my $CIRCLE_RESOLUTION=30;
 my $FPS=60.0;
 my $DELAY=1000.0/$FPS;
 my $DELTA_TIME_SEC=1.0/$FPS;
+
+sub immediate_thicc_line{
+	my ($p0,$p1,$t)=@_;
+
+	my $v1=Vector2->new(0,0);
+	$v1->{x}=$p1->{x}-$p0->{x};
+	$v1->{y}=$p1->{y}-$p0->{y};
+
+	my $v2=Vector2->new(-$v1->{y},$v1->{x});
+	my $v2l=sqrt($v2->{x}**2+$v2->{y}**2);
+	my $epsilon=0.000006;
+	if($v2l<$epsilon){
+		return;
+	}
+	$v2->{x}/=$v2l;
+	$v2->{y}/=$v2l;
+
+	my $nguyen=Vector2->new(0,0);
+	$nguyen->{x}=$p0->{x}+$v2->{x}*($t/2);
+	$nguyen->{y}=$p0->{y}+$v2->{y}*($t/2);
+
+	my $vuong=Vector2->new(0,0);
+	$vuong->{x}=$p0->{x}-$v2->{x}*($t/2);
+	$vuong->{y}=$p0->{y}-$v2->{y}*($t/2);
+
+	my $dinh=Vector2->new(0,0);
+	$dinh->{x}=$p1->{x}-$v2->{x}*($t/2);
+	$dinh->{y}=$p1->{y}-$v2->{y}*($t/2);
+
+	my $bach=Vector2->new(0,0);
+	$bach->{x}=$p1->{x}+$v2->{x}*($t/2);
+	$bach->{y}=$p1->{y}+$v2->{y}*($t/2);
+
+	simp_immediate_quad($nguyen,$vuong,$dinh,$bach);
+}
+sub immediate_circle{
+	my ($center,$radius)=@_;
+
+	my $STEP_ANGLE=(2*$PI)/($CIRCLE_RESOLUTION);
+
+	for(0..$CIRCLE_RESOLUTION-1){
+		my $p0=$center;
+
+		my $p1=Vector2->new(cos($STEP_ANGLE*$_),sin($STEP_ANGLE*$_));
+		$p1->{x}*=$radius;
+		$p1->{y}*=$radius;
+		$p1->{x}+=$center->{x};
+		$p1->{y}+=$center->{y};
+
+		my $p2=Vector2->new(cos($STEP_ANGLE*($_+1)),sin($STEP_ANGLE*($_+1)));
+		$p2->{x}*=$radius;
+		$p2->{y}*=$radius;
+		$p2->{x}+=$center->{x};
+		$p2->{y}+=$center->{y};
+		simp_immediate_triangle($p0,$p1,$p2);
+	}
+}
 
 sub update{
 	my ($window,$dt)=@_;
 }
 sub render{
-	simp_immediate_triangle(
-		Vector2->new(0,0),
-		Vector2->new($WINDOW_WIDTH,0),
-		Vector2->new($WINDOW_WIDTH/2,$WINDOW_HEIGHT)
-	    );
+	my $pad=100;
+	
+	glColor3f(1.0,0.0,0.0);
+	my $p0=Vector2->new($pad,$pad);
+	my $p1=Vector2->new($WINDOW_WIDTH-$pad,$WINDOW_HEIGHT-$pad);
+	immediate_thicc_line($p0,$p1,20);
+	immediate_circle($p0,30);
+	immediate_circle($p1,30);
+	
+	glColor3f(0.0,1.0,0.0);
+	my $p2=Vector2->new($WINDOW_WIDTH-$pad,$pad);
+	my $p3=Vector2->new($pad,$WINDOW_HEIGHT-$pad);
+	immediate_thicc_line($p2,$p3,20);
+	immediate_circle($p2,30);
+	immediate_circle($p3,30);
 }
 sub main{
 	glfwInit();
@@ -101,6 +170,11 @@ sub simp_immediate_triangle{
 		Vector2->new($bx,$by),
 		Vector2->new($cx,$cy),
 	    );
+}
+sub simp_immediate_quad{
+	my ($p0,$p1,$p2,$p3)=@_;
+	simp_immediate_triangle($p0,$p1,$p2);
+	simp_immediate_triangle($p0,$p2,$p3);
 }
 
 package Vector2;
