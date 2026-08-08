@@ -101,10 +101,21 @@ sub compute_tail_velocity{
 
 #state
 my $head=Vector2->new($WINDOW_WIDTH/2,$WINDOW_HEIGHT/2);
-my $tail=Vector2->new($WINDOW_WIDTH/3,$WINDOW_HEIGHT/3);
-my $tail_velocity=Vector2->new(0,0);
+my $TAIL_LENGTH=20;
+my $tail=[];
+for(0..$TAIL_LENGTH-1){
+	$tail->[$_]=Vector2->new(
+		rand()*$WINDOW_WIDTH,
+		rand()*$WINDOW_HEIGHT
+	    );
+}
+my $tail_velocity=[];
+for(0..$TAIL_LENGTH-1){
+	$tail_velocity->[$_]=Vector2->new(0,0);
+}
 my $drag=0; #0=false
 my $prev_left_mouse_button=GLFW_RELEASE; #release=0,press=1
+
 sub update{
 	my ($window,$dt)=@_;
 
@@ -127,22 +138,36 @@ sub update{
 		$head=mouse_position($window);
 	}
 
-	$tail_velocity=compute_tail_velocity($head,$tail);
+	$tail_velocity->[0]=compute_tail_velocity($head,$tail->[0]);
+	for(1..$TAIL_LENGTH-1){
+		$tail_velocity->[$_]=compute_tail_velocity($tail->[$_-1],$tail->[$_]);
+	}
 
-	$tail->{x}+=$tail_velocity->{x}*$dt;
-	$tail->{y}+=$tail_velocity->{y}*$dt;
+	for(0..$TAIL_LENGTH-1){
+		$tail->[$_]->{x}+=$tail_velocity->[$_]->{x}*$dt;
+		$tail->[$_]->{y}+=$tail_velocity->[$_]->{y}*$dt;
+	}
 }
 sub render{
 	glColor3f(0.5,0.5,0.5);
-	immediate_thicc_line($head,$tail,30);
+	immediate_thicc_line($head,$tail->[0],30);
+
+	glColor3f(0.5,0.5,0.5);
+	for(1..$TAIL_LENGTH-1){
+		immediate_thicc_line($tail->[$_-1],$tail->[$_],$KNOT_RADIUS);
+	}
+
 	glColor3f(1.0,0.0,0.0);
 	immediate_circle($head,$KNOT_RADIUS);
+
 	glColor3f(0.0,1.0,0.0);
-	immediate_circle($tail,$KNOT_RADIUS);
+	for(0..$TAIL_LENGTH-1){
+		immediate_circle($tail->[$_],$KNOT_RADIUS);
+	}
 }
 sub main{
 	glfwInit();
-	my $window=glfwCreateWindow($WINDOW_WIDTH,$WINDOW_HEIGHT,"hello",NULL,NULL);
+	my $window=glfwCreateWindow($WINDOW_WIDTH,$WINDOW_HEIGHT,"Here's Rope?",NULL,NULL);
 
 	glfwMakeContextCurrent($window);
 	glClearColor(0.1,0.1,0.1,1.0);
