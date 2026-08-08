@@ -35,23 +35,12 @@ sub immediate_thicc_line{
 	$v2->{x}/=$v2l;
 	$v2->{y}/=$v2l;
 
-	my $nguyen=Vector2->new(0,0);
-	$nguyen->{x}=$p0->{x}+$v2->{x}*($t/2);
-	$nguyen->{y}=$p0->{y}+$v2->{y}*($t/2);
-
-	my $vuong=Vector2->new(0,0);
-	$vuong->{x}=$p0->{x}-$v2->{x}*($t/2);
-	$vuong->{y}=$p0->{y}-$v2->{y}*($t/2);
-
-	my $dinh=Vector2->new(0,0);
-	$dinh->{x}=$p1->{x}-$v2->{x}*($t/2);
-	$dinh->{y}=$p1->{y}-$v2->{y}*($t/2);
-
-	my $bach=Vector2->new(0,0);
-	$bach->{x}=$p1->{x}+$v2->{x}*($t/2);
-	$bach->{y}=$p1->{y}+$v2->{y}*($t/2);
-
-	simp_immediate_quad($nguyen,$vuong,$dinh,$bach);
+	simp_immediate_quad(
+		Vector2->new($p0->{x}+$v2->{x}*($t/2),$p0->{y}+$v2->{y}*($t/2)),
+		Vector2->new($p0->{x}-$v2->{x}*($t/2),$p0->{y}-$v2->{y}*($t/2)),
+		Vector2->new($p1->{x}-$v2->{x}*($t/2),$p1->{y}-$v2->{y}*($t/2)),
+		Vector2->new($p1->{x}+$v2->{x}*($t/2),$p1->{y}+$v2->{y}*($t/2))
+	    );
 }
 sub immediate_circle{
 	my ($center,$radius)=@_;
@@ -87,7 +76,7 @@ sub compute_tail_velocity{
 	my $tail_velocity=Vector2->new(0,0);
 
 	my $TARGET_DISTANCE=100;
-	my $ELASTICITY=20; #STOP AT HERE: 1:42:51
+	my $ELASTICITY=20;
 	
 	my $len=v2length(Vector2->new($tail->{x}-$head->{x},$tail->{y}-$head->{y}));
 	my $target=Vector2->new(0,0);
