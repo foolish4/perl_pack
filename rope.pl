@@ -10,7 +10,7 @@ use Time::HiRes qw(usleep);
 
 #configuration
 my $PI=3.14159;
-my $WINDOW_FACTOR=75;
+my $WINDOW_FACTOR=50;
 my $WINDOW_WIDTH=16*$WINDOW_FACTOR;
 my $WINDOW_HEIGHT=9*$WINDOW_FACTOR;
 my $CIRCLE_RESOLUTION=30;
@@ -76,7 +76,7 @@ sub compute_tail_velocity{
 	my $tail_velocity=Vector2->new(0,0);
 
 	my $TARGET_DISTANCE=100;
-	my $ELASTICITY=20;
+	my $ELASTICITY=50;
 	
 	my $len=v2length(Vector2->new($tail->{x}-$head->{x},$tail->{y}-$head->{y}));
 	my $target=Vector2->new(0,0);
@@ -101,7 +101,7 @@ sub compute_tail_velocity{
 
 #state
 my $head=Vector2->new($WINDOW_WIDTH/2,$WINDOW_HEIGHT/2);
-my $TAIL_LENGTH=20;
+my $TAIL_LENGTH=8;
 my $tail=[];
 for(0..$TAIL_LENGTH-1){
 	$tail->[$_]=Vector2->new(
