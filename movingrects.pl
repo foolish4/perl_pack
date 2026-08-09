@@ -13,7 +13,7 @@ my $FPS=60.0;
 my $DELAY=1000/$FPS;
 my $DELTA_TIME_SEC=1.0/$FPS;
 my $RECT_SIZE=30;
-my $MAX_RECTS=50;
+my $MAX_RECTS=500;
 
 #state
 sub make_wrect{ #weird rect
